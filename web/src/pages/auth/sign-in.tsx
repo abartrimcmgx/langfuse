@@ -166,7 +166,7 @@ export function SSOButtons({
               variant="secondary"
             >
               <TbCircleKey className="mr-3" size={18} />
-              {action} with Keycloak
+              Keycloak
             </Button>
           )}
           {authProviders.okta && (
