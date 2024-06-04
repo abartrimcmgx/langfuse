@@ -183,32 +183,36 @@ if (
     }),
   );
 
+const keycloakAccountLinking = env.AUTH_KEYCLOAK_ALLOW_ACCOUNT_LINKING === "true"
+
 if (
   env.AUTH_KEYCLOAK_CLIENT_ID &&
-  env.AUTH_KEYCLOAK_ISSUER
+  env.AUTH_KEYCLOAK_ISSUER &&
+  env.AUTH_KEYCLOAK_CLIENT_SECRET
 )
   staticProviders.push(
     KeycloakProvider({
       clientId: env.AUTH_KEYCLOAK_CLIENT_ID,
-      clientSecret: env.AUTH_KEYCLOAK_CLIENT_SECRET || "",
+      clientSecret: env.AUTH_KEYCLOAK_CLIENT_SECRET,
       issuer: env.AUTH_KEYCLOAK_ISSUER,
-      allowDangerousEmailAccountLinking:
-        env.AUTH_KEYCLOAK_ALLOW_ACCOUNT_LINKING === "true",
+      allowDangerousEmailAccountLinking: keycloakAccountLinking,
     }),
   );
 
 // Extend Prisma Adapter
 const prismaAdapter = PrismaAdapter(prisma);
 
-// Keycloak hack, remove `not-before-policy` and `refresh_expires_in` from account object
-// to prevent Prisma from throwing an error
-// https://github.com/nextauthjs/next-auth/pull/4893
-const _linkAccount = prismaAdapter.linkAccount!;
-prismaAdapter.linkAccount = (account) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { 'not-before-policy': _, refresh_expires_in, ...data } = account;
-  return _linkAccount(data);
-};
+if (keycloakAccountLinking) {
+  // Keycloak hack, remove `not-before-policy` and `refresh_expires_in` from account object
+  // to prevent Prisma from throwing an error
+  // https://github.com/nextauthjs/next-auth/pull/4893
+  const _linkAccount = prismaAdapter.linkAccount!;
+  prismaAdapter.linkAccount = (account) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { 'not-before-policy': _, refresh_expires_in, ...data } = account;
+    return _linkAccount(data);
+  };
+}
 
 const extendedPrismaAdapter: Adapter = {
   ...prismaAdapter,
