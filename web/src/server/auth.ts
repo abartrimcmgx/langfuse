@@ -22,6 +22,7 @@ import EmailProvider from "next-auth/providers/email";
 import Auth0Provider from "next-auth/providers/auth0";
 import CognitoProvider from "next-auth/providers/cognito";
 import AzureADProvider from "next-auth/providers/azure-ad";
+import KeycloakProvider from "next-auth/providers/keycloak";
 import { type Provider } from "next-auth/providers/index";
 import { getCookieName, getCookieOptions } from "./utils/cookies";
 import {
@@ -222,23 +223,37 @@ if (
     }),
   );
 
+const keycloakAccountLinking = env.AUTH_KEYCLOAK_ALLOW_ACCOUNT_LINKING === "true"
+
 if (
-  env.AUTH_COGNITO_CLIENT_ID &&
-  env.AUTH_COGNITO_CLIENT_SECRET &&
-  env.AUTH_COGNITO_ISSUER
+  env.AUTH_KEYCLOAK_CLIENT_ID &&
+  env.AUTH_KEYCLOAK_ISSUER &&
+  env.AUTH_KEYCLOAK_CLIENT_SECRET
 )
   staticProviders.push(
-    CognitoProvider({
-      clientId: env.AUTH_COGNITO_CLIENT_ID,
-      clientSecret: env.AUTH_COGNITO_CLIENT_SECRET,
-      issuer: env.AUTH_COGNITO_ISSUER,
-      allowDangerousEmailAccountLinking:
-        env.AUTH_COGNITO_ALLOW_ACCOUNT_LINKING === "true",
+    KeycloakProvider({
+      clientId: env.AUTH_KEYCLOAK_CLIENT_ID,
+      clientSecret: env.AUTH_KEYCLOAK_CLIENT_SECRET,
+      issuer: env.AUTH_KEYCLOAK_ISSUER,
+      allowDangerousEmailAccountLinking: keycloakAccountLinking,
     }),
   );
 
 // Extend Prisma Adapter
 const prismaAdapter = PrismaAdapter(prisma);
+
+if (keycloakAccountLinking) {
+  // Keycloak hack, remove `not-before-policy` and `refresh_expires_in` from account object
+  // to prevent Prisma from throwing an error
+  // https://github.com/nextauthjs/next-auth/pull/4893
+  const _linkAccount = prismaAdapter.linkAccount!;
+  prismaAdapter.linkAccount = (account) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { 'not-before-policy': _, refresh_expires_in, ...data } = account;
+    return _linkAccount(data);
+  };
+}
+
 const extendedPrismaAdapter: Adapter = {
   ...prismaAdapter,
   async createUser(profile) {
@@ -253,7 +268,7 @@ const extendedPrismaAdapter: Adapter = {
     if (!profile.email) {
       throw new Error(
         "Cannot create db user as login profile does not contain an email: " +
-          JSON.stringify(profile),
+        JSON.stringify(profile),
       );
     }
 
@@ -323,27 +338,27 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           user:
             dbUser !== null
               ? {
-                  ...session.user,
-                  id: dbUser.id,
-                  name: dbUser.name,
-                  email: dbUser.email,
-                  image: dbUser.image,
-                  admin: dbUser.admin,
-                  emailVerified: dbUser.emailVerified?.toISOString(),
-                  projects: dbUser.projectMemberships.map((membership) => ({
-                    id: membership.project.id,
-                    name: membership.project.name,
-                    role: membership.role,
-                    cloudConfig: {
-                      defaultLookBackDays:
-                        cloudConfigSchema
-                          .nullish()
-                          .parse(membership.project.cloudConfig)
-                          ?.defaultLookBackDays ?? null,
-                    },
-                  })),
-                  featureFlags: parseFlags(dbUser.featureFlags),
-                }
+                ...session.user,
+                id: dbUser.id,
+                name: dbUser.name,
+                email: dbUser.email,
+                image: dbUser.image,
+                admin: dbUser.admin,
+                emailVerified: dbUser.emailVerified?.toISOString(),
+                projects: dbUser.projectMemberships.map((membership) => ({
+                  id: membership.project.id,
+                  name: membership.project.name,
+                  role: membership.role,
+                  cloudConfig: {
+                    defaultLookBackDays:
+                      cloudConfigSchema
+                        .nullish()
+                        .parse(membership.project.cloudConfig)
+                        ?.defaultLookBackDays ?? null,
+                  },
+                })),
+                featureFlags: parseFlags(dbUser.featureFlags),
+              }
               : null,
         };
       },
@@ -411,8 +426,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       error: "/auth/error",
       ...(env.NEXT_PUBLIC_LANGFUSE_CLOUD_REGION
         ? {
-            newUser: "/onboarding",
-          }
+          newUser: "/onboarding",
+        }
         : {}),
     },
     cookies: {

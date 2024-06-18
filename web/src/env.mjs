@@ -74,6 +74,10 @@ export const env = createEnv({
     AUTH_AUTH0_CLIENT_SECRET: z.string().optional(),
     AUTH_AUTH0_ISSUER: z.string().url().optional(),
     AUTH_AUTH0_ALLOW_ACCOUNT_LINKING: z.enum(["true", "false"]).optional(),
+    AUTH_KEYCLOAK_CLIENT_ID: z.string().optional(),
+    AUTH_KEYCLOAK_CLIENT_SECRET: z.string().optional(),
+    AUTH_KEYCLOAK_ISSUER: z.string().url().optional(),
+    AUTH_KEYCLOAK_ALLOW_ACCOUNT_LINKING: z.enum(["true", "false"]).optional(),
     AUTH_COGNITO_CLIENT_ID: z.string().optional(),
     AUTH_COGNITO_CLIENT_SECRET: z.string().optional(),
     AUTH_COGNITO_ISSUER: z.string().url().optional(),
@@ -173,6 +177,11 @@ export const env = createEnv({
     AUTH_AZURE_AD_TENANT_ID: process.env.AUTH_AZURE_AD_TENANT_ID,
     AUTH_AZURE_ALLOW_ACCOUNT_LINKING:
       process.env.AUTH_AZURE_ALLOW_ACCOUNT_LINKING,
+    AUTH_KEYCLOAK_CLIENT_ID: process.env.AUTH_KEYCLOAK_CLIENT_ID,
+    AUTH_KEYCLOAK_CLIENT_SECRET: process.env.AUTH_KEYCLOAK_CLIENT_SECRET,
+    AUTH_KEYCLOAK_ISSUER: process.env.AUTH_KEYCLOAK_ISSUER,
+    AUTH_KEYCLOAK_ALLOW_ACCOUNT_LINKING:
+      process.env.AUTH_KEYCLOAK_ALLOW_ACCOUNT_LINKING,
     AUTH_OKTA_CLIENT_ID: process.env.AUTH_OKTA_CLIENT_ID,
     AUTH_OKTA_CLIENT_SECRET: process.env.AUTH_OKTA_CLIENT_SECRET,
     AUTH_OKTA_ISSUER: process.env.AUTH_OKTA_ISSUER,
