@@ -82,6 +82,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
           env.AUTH_AZURE_AD_CLIENT_ID !== undefined &&
           env.AUTH_AZURE_AD_CLIENT_SECRET !== undefined &&
           env.AUTH_AZURE_AD_TENANT_ID !== undefined,
+        keycloak:
+          env.AUTH_KEYCLOAK_CLIENT_ID !== undefined &&
+          env.AUTH_KEYCLOAK_CLIENT_SECRET !== undefined &&
+          env.AUTH_KEYCLOAK_ISSUER !== undefined,
         auth0:
           env.AUTH_AUTH0_CLIENT_ID !== undefined &&
           env.AUTH_AUTH0_CLIENT_SECRET !== undefined &&
@@ -160,6 +164,20 @@ export function SSOButtons({
             >
               <TbBrandAzure className="mr-3" size={18} />
               Azure AD
+            </Button>
+          )}
+          {authProviders.keycloak && (
+            <Button
+              onClick={() => {
+                capture("sign_in:button_click", {
+                  provider: "keycloak",
+                });
+                void signIn("keycloak");
+              }}
+              variant="secondary"
+            >
+              <TbCircleKey className="mr-3" size={18} />
+              Keycloak
             </Button>
           )}
           {authProviders.okta && (
