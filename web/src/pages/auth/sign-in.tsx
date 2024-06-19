@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import { SiOkta, SiAuth0, SiAmazoncognito } from "react-icons/si";
-import { TbBrandAzure, TbBrandOauth } from "react-icons/tb";
+import { TbBrandAzure, TbBrandOauth, TbCircleKey } from "react-icons/tb";
 import { signIn } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
