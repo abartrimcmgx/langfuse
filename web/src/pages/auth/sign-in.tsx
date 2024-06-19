@@ -48,6 +48,7 @@ export type PageProps = {
     github: boolean;
     okta: boolean;
     azureAd: boolean;
+    keycloak: boolean;
     auth0: boolean;
     cognito: boolean;
     custom:
