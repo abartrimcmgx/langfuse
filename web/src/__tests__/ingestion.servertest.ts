@@ -59,6 +59,17 @@ describe("/api/public/ingestion API Endpoint", () => {
     },
     {
       usage: {
+        input: 1,
+        output: 2,
+        unit: ModelUsageUnit.Requests,
+      },
+      expectedUnit: ModelUsageUnit.Requests,
+      expectedPromptTokens: 1,
+      expectedCompletionTokens: 2,
+      expectedTotalTokens: 3,
+    },
+    {
+      usage: {
         input: 30,
         output: 10,
         unit: ModelUsageUnit.Seconds,
@@ -767,6 +778,52 @@ describe("/api/public/ingestion API Endpoint", () => {
     expect(dbTrace[0]?.projectId).toBe("7a88fb47-b4e2-43b8-a06c-a5ce950dc53a");
     expect(dbTrace[0]?.tags).toEqual(["tag-1", "tag-2", "tag-3", "tag-4"]);
     expect(dbTrace[0]?.tags.length).toBe(4);
+  });
+
+  it("should upsert traces in the right order", async () => {
+    const traceId = v4();
+
+    const latestEvent = new Date();
+    const oldEvent = new Date(latestEvent).setSeconds(
+      latestEvent.getSeconds() - 1,
+    );
+
+    const responseOne = await makeAPICall("POST", "/api/public/ingestion", {
+      batch: [
+        {
+          id: v4(),
+          type: "trace-create",
+          timestamp: latestEvent,
+          body: {
+            id: traceId,
+            name: "trace-name",
+            userId: "user-1",
+          },
+        },
+        {
+          id: v4(),
+          type: "trace-create",
+          timestamp: oldEvent,
+          body: {
+            id: traceId,
+            name: "trace-name",
+            userId: "user-2",
+          },
+        },
+      ],
+    });
+    expect(responseOne.status).toBe(207);
+
+    const dbTrace = await prisma.trace.findMany({
+      where: {
+        name: "trace-name",
+      },
+    });
+
+    expect(dbTrace.length).toBeGreaterThan(0);
+    expect(dbTrace[0]?.name).toBe("trace-name");
+    expect(dbTrace[0]?.userId).toBe("user-1");
+    expect(dbTrace[0]?.projectId).toBe("7a88fb47-b4e2-43b8-a06c-a5ce950dc53a");
   });
 
   it("should fail for wrong event formats", async () => {

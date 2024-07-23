@@ -155,7 +155,7 @@ export function InlineFilterState({
           : ""}{" "}
         {filter.operator}{" "}
         {filter.type === "datetime"
-          ? new Date(filter.value).toLocaleDateString()
+          ? new Date(filter.value).toLocaleString()
           : filter.type === "stringOptions" || filter.type === "arrayOptions"
             ? filter.value.length > 2
               ? `${filter.value.length} selected`
@@ -268,11 +268,17 @@ function FilterBuilderForm({
                     value={column ? column.id : ""}
                     disabled={disabled}
                     onValueChange={(value) => {
+                      const col = columns.find((c) => c.id === value);
                       handleFilterChange(
                         {
-                          column: columns.find((c) => c.id === value)?.name,
-                          type: columns.find((c) => c.id === value)?.type,
-                          operator: undefined,
+                          column: col?.name,
+                          type: col?.type,
+                          operator:
+                            // does not work as expected on eval-template form when embedded into form via InlineFilterBuilder
+                            // col?.type !== undefined &&
+                            // filterOperators[col.type]?.length > 0
+                            //   ? (filterOperators[col.type][0] as any) // operator matches type
+                            undefined,
                           value: undefined,
                           key: undefined,
                         },
@@ -410,6 +416,7 @@ function FilterBuilderForm({
                           i,
                         );
                       }}
+                      includeTimePicker
                     />
                   ) : filter.type === "stringOptions" ||
                     filter.type === "arrayOptions" ? (

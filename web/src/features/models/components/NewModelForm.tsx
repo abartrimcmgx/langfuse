@@ -29,6 +29,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { JsonEditor } from "@/src/components/json-editor";
 import { usePostHogClientCapture } from "@/src/features/posthog-analytics/usePostHogClientCapture";
 import Link from "next/link";
+import { utcDate } from "@/src/utils/dates";
 
 const formSchema = z.object({
   modelName: z.string().min(1),
@@ -124,6 +125,7 @@ export const NewModelForm = (props: {
           typeof JSON.parse(values.tokenizerConfig) === "object"
             ? (JSON.parse(values.tokenizerConfig) as Record<string, number>)
             : undefined,
+        startDate: values.startDate ? utcDate(values.startDate) : undefined,
       })
       .then(() => {
         props.onFormSuccess?.();
@@ -267,16 +269,16 @@ export const NewModelForm = (props: {
                   <FormDescription>
                     <ul className="font-mono text-xs">
                       <li>
-                        {(parseFloat(field.value ?? "0") * 1000).toFixed(4)} USD
+                        {(parseFloat(field.value ?? "0") * 1000).toFixed(8)} USD
                         / 1k {form.getValues("unit").toLowerCase()}
                       </li>
                       <li>
-                        {(parseFloat(field.value ?? "0") * 100_000).toFixed(4)}{" "}
+                        {(parseFloat(field.value ?? "0") * 100_000).toFixed(8)}{" "}
                         USD / 100k {form.getValues("unit").toLowerCase()}
                       </li>
                       <li>
                         {(parseFloat(field.value ?? "0") * 1_000_000).toFixed(
-                          4,
+                          8,
                         )}{" "}
                         USD / 1M {form.getValues("unit").toLowerCase()}
                       </li>
@@ -303,16 +305,16 @@ export const NewModelForm = (props: {
                   <FormDescription>
                     <ul className="font-mono text-xs">
                       <li>
-                        {(parseFloat(field.value ?? "0") * 1000).toFixed(4)} USD
+                        {(parseFloat(field.value ?? "0") * 1000).toFixed(8)} USD
                         / 1k {form.getValues("unit").toLowerCase()}
                       </li>
                       <li>
-                        {(parseFloat(field.value ?? "0") * 100_000).toFixed(4)}{" "}
+                        {(parseFloat(field.value ?? "0") * 100_000).toFixed(8)}{" "}
                         USD / 100k {form.getValues("unit").toLowerCase()}
                       </li>
                       <li>
                         {(parseFloat(field.value ?? "0") * 1_000_000).toFixed(
-                          4,
+                          8,
                         )}{" "}
                         USD / 1M {form.getValues("unit").toLowerCase()}
                       </li>
@@ -339,16 +341,16 @@ export const NewModelForm = (props: {
                   {field.value !== null && field.value !== "" ? (
                     <ul className="mt-2 font-mono text-xs">
                       <li>
-                        {(parseFloat(field.value ?? "0") * 1000).toFixed(4)} USD
+                        {(parseFloat(field.value ?? "0") * 1000).toFixed(8)} USD
                         / 1k {form.getValues("unit").toLowerCase()}
                       </li>
                       <li>
-                        {(parseFloat(field.value ?? "0") * 100_000).toFixed(4)}{" "}
+                        {(parseFloat(field.value ?? "0") * 100_000).toFixed(8)}{" "}
                         USD / 100k {form.getValues("unit").toLowerCase()}
                       </li>
                       <li>
                         {(parseFloat(field.value ?? "0") * 1_000_000).toFixed(
-                          4,
+                          8,
                         )}{" "}
                         USD / 1M {form.getValues("unit").toLowerCase()}
                       </li>

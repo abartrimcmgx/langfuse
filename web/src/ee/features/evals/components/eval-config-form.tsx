@@ -82,11 +82,15 @@ export const EvalConfigForm = (props: {
             <SelectValue placeholder="Select a template to run this eval config" />
           </SelectTrigger>
           <SelectContent>
-            {props.evalTemplates.map((template) => (
-              <SelectItem value={template.id} key={template.id}>
-                {`${template.name}-v${template.version}`}
-              </SelectItem>
-            ))}
+            {props.evalTemplates
+              .sort(
+                (a, b) => a.name.localeCompare(b.name) || a.version - b.version,
+              )
+              .map((template) => (
+                <SelectItem value={template.id} key={template.id}>
+                  {`${template.name}-v${template.version}`}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       ) : undefined}
@@ -153,7 +157,7 @@ export const InnerEvalConfigForm = (props: {
   });
 
   useEffect(() => {
-    if (props.evalTemplate) {
+    if (props.evalTemplate && form.getValues("mapping").length === 0) {
       form.setValue(
         "mapping",
         props.evalTemplate.vars.map((v) => ({
