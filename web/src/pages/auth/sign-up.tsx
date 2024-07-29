@@ -1,4 +1,3 @@
-import { type GetServerSideProps } from "next";
 import { LangfuseIcon } from "@/src/components/LangfuseLogo";
 import { Button } from "@/src/components/ui/button";
 import {
@@ -10,28 +9,29 @@ import {
   FormMessage,
 } from "@/src/components/ui/form";
 import { Input } from "@/src/components/ui/input";
+import { PasswordInput } from "@/src/components/ui/password-input";
 import { env } from "@/src/env.mjs";
+import { CloudPrivacyNotice } from "@/src/features/auth/components/AuthCloudPrivacyNotice";
+import { CloudRegionSwitch } from "@/src/features/auth/components/AuthCloudRegionSwitch";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
-import { SiOkta, SiAuth0, SiAmazoncognito } from "react-icons/si";
-import { TbBrandAzure, TbBrandOauth, TbCircleKey } from "react-icons/tb";
+import { Turnstile } from "@marsidev/react-turnstile";
+import { Divider } from "@tremor/react";
+import { type GetServerSideProps } from "next";
 import { signIn } from "next-auth/react";
 import Head from "next/head";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { FaGithub } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
+import { SiAmazoncognito, SiAuth0, SiOkta } from "react-icons/si";
+import { TbBrandAzure, TbBrandOauth, TbCircleKey } from "react-icons/tb";
 import * as z from "zod";
-import { Divider } from "@tremor/react";
-import { CloudPrivacyNotice } from "@/src/features/auth/components/AuthCloudPrivacyNotice";
-import { CloudRegionSwitch } from "@/src/features/auth/components/AuthCloudRegionSwitch";
-import { PasswordInput } from "@/src/components/ui/password-input";
-import { Turnstile } from "@marsidev/react-turnstile";
-import { isAnySsoConfigured } from "@langfuse/ee/sso";
+// import { isAnySsoConfigured } from "@langfuse/ee/sso";
+import { usePostHogClientCapture } from "@/src/features/posthog-analytics/usePostHogClientCapture";
+import { captureException } from "@sentry/nextjs";
 import { Shield } from "lucide-react";
 import { useRouter } from "next/router";
-import { captureException } from "@sentry/nextjs";
-import { usePostHogClientCapture } from "@/src/features/posthog-analytics/usePostHogClientCapture";
 
 const credentialAuthForm = z.object({
   email: z.string().email(),
@@ -52,10 +52,10 @@ export type PageProps = {
     auth0: boolean;
     cognito: boolean;
     custom:
-    | {
-      name: string;
-    }
-    | false;
+      | {
+          name: string;
+        }
+      | false;
     sso: boolean;
   };
   signUpDisabled: boolean;
@@ -64,7 +64,7 @@ export type PageProps = {
 // Also used in src/pages/auth/sign-up.tsx
 // eslint-disable-next-line @typescript-eslint/require-await
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const sso: boolean = await isAnySsoConfigured();
+  const sso: boolean = true;
   return {
     props: {
       authProviders: {
@@ -97,9 +97,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
           env.AUTH_COGNITO_ISSUER !== undefined,
         custom:
           env.AUTH_CUSTOM_CLIENT_ID !== undefined &&
-            env.AUTH_CUSTOM_CLIENT_SECRET !== undefined &&
-            env.AUTH_CUSTOM_ISSUER !== undefined &&
-            env.AUTH_CUSTOM_NAME !== undefined
+          env.AUTH_CUSTOM_CLIENT_SECRET !== undefined &&
+          env.AUTH_CUSTOM_ISSUER !== undefined &&
+          env.AUTH_CUSTOM_NAME !== undefined
             ? { name: env.AUTH_CUSTOM_NAME }
             : false,
         sso,
@@ -486,8 +486,8 @@ export default function SignIn({ authProviders, signUpDisabled }: PageProps) {
           }
 
           {!signUpDisabled &&
-            env.NEXT_PUBLIC_SIGN_UP_DISABLED !== "true" &&
-            authProviders.credentials ? (
+          env.NEXT_PUBLIC_SIGN_UP_DISABLED !== "true" &&
+          authProviders.credentials ? (
             <p className="mt-10 text-center text-sm text-muted-foreground">
               No account yet?{" "}
               <Link
