@@ -1,46 +1,43 @@
+import { env } from "@/src/env.mjs";
+import { verifyPassword } from "@/src/features/auth-credentials/lib/credentialsServerUtils";
+import { createProjectMembershipsOnSignup } from "@/src/features/auth/lib/createProjectMembershipsOnSignup";
+import { parseFlags } from "@/src/features/feature-flags/utils";
+import { prisma } from "@langfuse/shared/src/db";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { type GetServerSidePropsContext } from "next";
 import {
   getServerSession,
-  type User,
   type NextAuthOptions,
   type Session,
+  type User,
 } from "next-auth";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { prisma } from "@langfuse/shared/src/db";
-import { verifyPassword } from "@/src/features/auth-credentials/lib/credentialsServerUtils";
-import { parseFlags } from "@/src/features/feature-flags/utils";
-import { env } from "@/src/env.mjs";
-import { createProjectMembershipsOnSignup } from "@/src/features/auth/lib/createProjectMembershipsOnSignup";
 import { type Adapter } from "next-auth/adapters";
 
 // Providers
-import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider, { type GoogleProfile } from "next-auth/providers/google";
-import GitHubProvider from "next-auth/providers/github";
-import OktaProvider from "next-auth/providers/okta";
-import EmailProvider from "next-auth/providers/email";
-import Auth0Provider from "next-auth/providers/auth0";
-import CognitoProvider from "next-auth/providers/cognito";
-import AzureADProvider from "next-auth/providers/azure-ad";
-import KeycloakProvider from "next-auth/providers/keycloak";
-import { type Provider } from "next-auth/providers/index";
-import { getCookieName, getCookieOptions } from "./utils/cookies";
 import {
   getSsoAuthProviderIdForDomain,
   loadSsoProviders,
-} from "@langfuse/ee/sso";
-import { z } from "zod";
-import * as Sentry from "@sentry/nextjs";
+} from "@/src/ee/features/multi-tenant-sso/utils";
 import {
   CustomSSOProvider,
   sendResetPasswordVerificationRequest,
 } from "@langfuse/shared/src/server";
+import * as Sentry from "@sentry/nextjs";
+import Auth0Provider from "next-auth/providers/auth0";
+import AzureADProvider from "next-auth/providers/azure-ad";
+import CredentialsProvider from "next-auth/providers/credentials";
+import EmailProvider from "next-auth/providers/email";
+import GitHubProvider from "next-auth/providers/github";
+import GoogleProvider, { type GoogleProfile } from "next-auth/providers/google";
+import { type Provider } from "next-auth/providers/index";
+import KeycloakProvider from "next-auth/providers/keycloak";
+import OktaProvider from "next-auth/providers/okta";
+import { z } from "zod";
+import { getCookieName, getCookieOptions } from "./utils/cookies";
 
 export const cloudConfigSchema = z.object({
   plan: z.enum(["Hobby", "Pro", "Team", "Enterprise"]).optional(),
   monthlyObservationLimit: z.number().int().positive().optional(),
-  // used for table and dashboard queries
-  defaultLookBackDays: z.number().int().positive().optional(),
 });
 
 const staticProviders: Provider[] = [
@@ -226,7 +223,8 @@ if (
     }),
   );
 
-const keycloakAccountLinking = env.AUTH_KEYCLOAK_ALLOW_ACCOUNT_LINKING === "true"
+const keycloakAccountLinking =
+  env.AUTH_KEYCLOAK_ALLOW_ACCOUNT_LINKING === "true";
 
 if (
   env.AUTH_KEYCLOAK_CLIENT_ID &&
@@ -252,7 +250,7 @@ if (keycloakAccountLinking) {
   const _linkAccount = prismaAdapter.linkAccount!;
   prismaAdapter.linkAccount = (account) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { 'not-before-policy': _, refresh_expires_in, ...data } = account;
+    const { "not-before-policy": _, refresh_expires_in, ...data } = account;
     return _linkAccount(data);
   };
 }
@@ -271,7 +269,7 @@ const extendedPrismaAdapter: Adapter = {
     if (!profile.email) {
       throw new Error(
         "Cannot create db user as login profile does not contain an email: " +
-        JSON.stringify(profile),
+          JSON.stringify(profile),
       );
     }
 
@@ -332,8 +330,6 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
               env.LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES === "true",
             disableExpensivePostgresQueries:
               env.LANGFUSE_DISABLE_EXPENSIVE_POSTGRES_QUERIES === "true",
-            defaultTableDateTimeOffset:
-              env.LANGFUSE_DEFAULT_TABLE_DATETIME_OFFSET,
             // Enables features that are only available under an enterprise license when self-hosting Langfuse
             // If you edit this line, you risk executing code that is not MIT licensed (self-contained in /ee folders otherwise)
             eeEnabled: env.LANGFUSE_EE_LICENSE_KEY !== undefined,
@@ -341,27 +337,28 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           user:
             dbUser !== null
               ? {
-                ...session.user,
-                id: dbUser.id,
-                name: dbUser.name,
-                email: dbUser.email,
-                image: dbUser.image,
-                admin: dbUser.admin,
-                emailVerified: dbUser.emailVerified?.toISOString(),
-                projects: dbUser.projectMemberships.map((membership) => ({
-                  id: membership.project.id,
-                  name: membership.project.name,
-                  role: membership.role,
-                  cloudConfig: {
-                    defaultLookBackDays:
-                      cloudConfigSchema
-                        .nullish()
-                        .parse(membership.project.cloudConfig)
-                        ?.defaultLookBackDays ?? null,
-                  },
-                })),
-                featureFlags: parseFlags(dbUser.featureFlags),
-              }
+                  ...session.user,
+                  id: dbUser.id,
+                  name: dbUser.name,
+                  email: dbUser.email,
+                  image: dbUser.image,
+                  admin: dbUser.admin,
+                  emailVerified: dbUser.emailVerified?.toISOString(),
+                  projects: dbUser.projectMemberships.map((membership) => {
+                    const cloudConfig = cloudConfigSchema.safeParse(
+                      membership.project.cloudConfig,
+                    );
+                    return {
+                      id: membership.project.id,
+                      name: membership.project.name,
+                      role: membership.role,
+                      cloudConfig: cloudConfig.success
+                        ? cloudConfig.data
+                        : null,
+                    };
+                  }),
+                  featureFlags: parseFlags(dbUser.featureFlags),
+                }
               : null,
         };
       },
@@ -369,9 +366,11 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         // Block sign in without valid user.email
         const email = user.email?.toLowerCase();
         if (!email) {
+          console.error("No email found in user object");
           throw new Error("No email found in user object");
         }
         if (z.string().email().safeParse(email).success === false) {
+          console.error("Invalid email found in user object");
           throw new Error("Invalid email found in user object");
         }
 
@@ -380,6 +379,9 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         const domain = email.split("@")[1];
         const customSsoProvider = await getSsoAuthProviderIdForDomain(domain);
         if (customSsoProvider && account?.provider !== customSsoProvider) {
+          console.log(
+            "Custom SSO provider enforced for domain, user signed in with other provider",
+          );
           throw new Error(`You must sign in via SSO for this domain.`);
         }
 
@@ -429,8 +431,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       error: "/auth/error",
       ...(env.NEXT_PUBLIC_LANGFUSE_CLOUD_REGION
         ? {
-          newUser: "/onboarding",
-        }
+            newUser: "/onboarding",
+          }
         : {}),
     },
     cookies: {

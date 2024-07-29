@@ -44,8 +44,16 @@ const isChecklist = (children: ReactNode) =>
  * Security risks are taken care of by a validation in api.utilities.validateImgUrl
  * Fetching image will fail if SSL/TLS certificate is invalid or expired, will be handled by onError
  * Do not use this customLoader in production if you are not using the above mentioned security measures */
-const customLoader = ({ src }: { src: string }) => {
-  return src;
+const customLoader = ({
+  src,
+  width,
+  quality,
+}: {
+  src: string;
+  width: number;
+  quality?: number;
+}) => {
+  return `${src}?w=${width}&q=${quality || 75}`;
 };
 
 const ImageErrorDisplay = ({
@@ -80,8 +88,8 @@ const MarkdownImage: Components["img"] = ({ src, alt }) => {
     );
   }
 
-  const isHttp = new URL(src).protocol === "http:";
-  const errorDescription = `Cannot load image. ${isHttp ? "Http images are not rendered in Langfuse for security reasons." : ""} Click to view image in new tab`;
+  const errorDescription =
+    "Cannot load image. Http images are not rendered in Langfuse for security reasons";
 
   if (isValidImage.data?.isValid) {
     return (
@@ -240,11 +248,11 @@ export function MarkdownView({
             if (isChecklist(children))
               return <ul className="list-none">{children}</ul>;
 
-            return <ul className="list-inside list-disc pl-2">{children}</ul>;
+            return <ul className="list-outside list-disc pl-4">{children}</ul>;
           },
           ol({ children }) {
             return (
-              <ol className="list-inside list-decimal pl-2">{children}</ol>
+              <ol className="list-outside list-decimal pl-4">{children}</ol>
             );
           },
           li({ children }) {
